@@ -1,1 +1,26 @@
 .venv/
+venv/
+env/
+ENV/
+
+# Environment variables - local development
+.env_local
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
