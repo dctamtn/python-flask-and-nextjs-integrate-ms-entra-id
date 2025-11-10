@@ -57,6 +57,7 @@ npm run dev
 - **Session Management** - Automatic session validation and token handling
 - **API Integration** - Full integration with Flask SSO API endpoints
 - **No Azure AD Credentials Required** - Frontend only needs backend API URL
+- **Middleware** (`middleware.ts`) - Request logging and debugging for testing
 
 ## Pages
 
@@ -90,6 +91,7 @@ frontend/
 │   └── AuthContext.tsx      # Authentication context
 ├── lib/
 │   └── api.ts               # API client functions
+├── middleware.ts            # Next.js middleware (request logging)
 └── package.json
 ```
 
@@ -110,6 +112,16 @@ frontend/
    - Click Login with Microsoft
    - You'll be redirected to Microsoft login page
    - After login, you'll be redirected back to dashboard
+
+4. **Test Middleware**:
+   - Open browser console (F12) or terminal where `npm run dev` is running
+   - Navigate to any page (e.g., `/login`, `/dashboard`)
+   - You'll see middleware logs showing:
+     - Request path, method, URL
+     - Headers information
+     - Session token status
+     - Timestamp
+   - Check Network tab in browser DevTools to see custom headers added by middleware
 
 ## Configuration
 
