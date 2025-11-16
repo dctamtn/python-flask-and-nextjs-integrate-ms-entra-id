@@ -26,48 +26,65 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // TEST: Redirect logic for techpack detail pages
-  // Note: In production with Azure SWA, route protection should be handled via staticwebapp.config.json
-  // This middleware redirect is for testing the logout flow
-  if (pathname.startsWith('/techpack/detail/')) {
-    console.log('🧪 TESTING REDIRECT LOGIC');
-    console.log(`📍 Original pathname: ${pathname}`);
-    
-    // Build redirect path with search params
-    let redirectPath = `${pathname}${request.nextUrl.search}`;
-    
-    // Check for hash parameter (converted from hash fragment by HashConverter)
-    const hashParam = request.nextUrl.searchParams.get('hash');
-    if (hashParam) {
-      // Remove hash from query params and add to path as fragment
-      const searchParams = new URLSearchParams(request.nextUrl.search);
-      searchParams.delete('hash');
-      redirectPath = `${pathname}${searchParams.toString() ? '?' + searchParams.toString() : ''}#${hashParam}`;
-      console.log(`🔖 Hash fragment preserved: #${hashParam}`);
-    }
-    
-    console.log(`🔄 Redirect path: ${redirectPath}`);
-    
-    const redirectUrl = new URL(
-      `/auth/logout?post_logout_redirect_uri=${encodeURIComponent(redirectPath)}`,
-      request.url,
-    );
-    
-    console.log(`🔗 Redirect URL: ${redirectUrl.toString()}`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    
-    // Only redirect if hash param exists (meaning HashConverter already converted it)
-    if (hashParam) {
-      return NextResponse.redirect(redirectUrl);
-    } else {
-      // Hash not yet converted - let page load so HashConverter can convert it
-      console.log('⏳ Waiting for hash conversion - allowing page to load');
-    }
+  // Define protected routes that require authentication
+  const protectedRoutes = ['/dashboard', '/techpack'];
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+  
+  // Skip authentication check for public routes
+  const publicRoutes = ['/login', '/auth/logout', '/', '/.auth'];
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+  
+  // Skip authentication check for public routes
+  if (isPublicRoute) {
+    return NextResponse.next();
   }
-
+  
+  // Check Azure Static Web Apps authentication
+  // Azure SWA sets x-ms-client-principal header with user information (base64 encoded JSON)
+  const clientPrincipalHeader = request.headers.get('x-ms-client-principal');
+  
+  let isAuthenticated = false;
+  
+  if (clientPrincipalHeader) {
+    try {
+      // Decode base64 header (Edge Runtime compatible)
+      // In Edge Runtime, we can use atob() for base64 decoding
+      const decoded = atob(clientPrincipalHeader);
+      const principal = JSON.parse(decoded);
+      
+      // Check if user has 'authenticated' role
+      isAuthenticated = principal.userRoles?.includes('authenticated') || false;
+      
+      console.log('🔐 Azure SWA Authentication Check:', {
+        path: pathname,
+        authenticated: isAuthenticated,
+        userId: principal.userId,
+        userDetails: principal.userDetails,
+      });
+    } catch (error) {
+      console.error('❌ Error parsing client principal:', error);
+      isAuthenticated = false;
+    }
+  } else {
+    // No client principal header - user is not authenticated
+    // This is expected when not running in Azure SWA or SWA CLI
+    console.log('ℹ️ No x-ms-client-principal header found (may be running locally without SWA CLI)');
+  }
+  
+  // Redirect to login if accessing protected route without authentication
+  if (isProtectedRoute && !isAuthenticated) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('redirect', pathname + request.nextUrl.search);
+    
+    console.log('🚫 Unauthenticated access to protected route, redirecting to login');
+    console.log(`📍 Protected route: ${pathname}`);
+    console.log(`🔄 Redirect to: ${loginUrl.toString()}`);
+    
+    return NextResponse.redirect(loginUrl);
+  }
+  
   // Default: continue with request
-  const response = NextResponse.next();
-  return response;
+  return NextResponse.next();
 }
 
 /**
