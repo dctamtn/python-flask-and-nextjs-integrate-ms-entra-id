@@ -1,0 +1,20 @@
+{
+  "appLocation": ".",
+  "outputLocation": ".next",
+  "appDevserverUrl": "http://localhost:3000",
+  "devserverTimeout": 10000,
+  "apiLocation": "",
+  "auth": {
+    "identityProviders": {
+      "azureActiveDirectory": {
+        "userDetailsClaim": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+        "registration": {
+          "openIdIssuer": "https://login.microsoftonline.com/common/v2.0",
+          "clientIdSettingName": "AZURE_CLIENT_ID",
+          "clientSecretSettingName": "AZURE_CLIENT_SECRET"
+        }
+      }
+    }
+  }
+}
+

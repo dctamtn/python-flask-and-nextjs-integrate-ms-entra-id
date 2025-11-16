@@ -24,77 +24,49 @@ import type { NextRequest } from 'next/server';
  */
 
 export function middleware(request: NextRequest) {
-  // Get request information
-  const { pathname, search } = request.nextUrl;
-  const method = request.method;
-  const url = request.url;
-  const headers = Object.fromEntries(request.headers.entries());
+  const { pathname } = request.nextUrl;
   
-  // Log request information (for testing/debugging)
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🔹 MIDDLEWARE RUNNING');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`📍 Path: ${pathname}`);
-  console.log(`🔧 Method: ${method}`);
-  console.log(`🌐 Full URL: ${url}`);
-  console.log(`🔍 Search Params: ${search || '(none)'}`);
-  console.log(`📦 Headers:`, {
-    'user-agent': headers['user-agent']?.substring(0, 50) + '...',
-    'referer': headers['referer'] || '(none)',
-    'accept': headers['accept']?.substring(0, 50) + '...',
-  });
-  console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
-  // Example: Check for session token in cookies
-  const sessionToken = request.cookies.get('session_token')?.value;
-  const flaskSession = request.cookies.get('flask_session')?.value;
-  
-  if (sessionToken || flaskSession) {
-    console.log('✅ Session token found in cookies');
-  } else {
-    console.log('❌ No session token in cookies');
+  // TEST: Redirect logic for techpack detail pages
+  // Note: In production with Azure SWA, route protection should be handled via staticwebapp.config.json
+  // This middleware redirect is for testing the logout flow
+  if (pathname.startsWith('/techpack/detail/')) {
+    console.log('🧪 TESTING REDIRECT LOGIC');
+    console.log(`📍 Original pathname: ${pathname}`);
+    
+    // Build redirect path with search params
+    let redirectPath = `${pathname}${request.nextUrl.search}`;
+    
+    // Check for hash parameter (converted from hash fragment by HashConverter)
+    const hashParam = request.nextUrl.searchParams.get('hash');
+    if (hashParam) {
+      // Remove hash from query params and add to path as fragment
+      const searchParams = new URLSearchParams(request.nextUrl.search);
+      searchParams.delete('hash');
+      redirectPath = `${pathname}${searchParams.toString() ? '?' + searchParams.toString() : ''}#${hashParam}`;
+      console.log(`🔖 Hash fragment preserved: #${hashParam}`);
+    }
+    
+    console.log(`🔄 Redirect path: ${redirectPath}`);
+    
+    const redirectUrl = new URL(
+      `/auth/logout?post_logout_redirect_uri=${encodeURIComponent(redirectPath)}`,
+      request.url,
+    );
+    
+    console.log(`🔗 Redirect URL: ${redirectUrl.toString()}`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    
+    // Only redirect if hash param exists (meaning HashConverter already converted it)
+    if (hashParam) {
+      return NextResponse.redirect(redirectUrl);
+    } else {
+      // Hash not yet converted - let page load so HashConverter can convert it
+      console.log('⏳ Waiting for hash conversion - allowing page to load');
+    }
   }
 
-  // Example: Add custom headers to response
+  // Default: continue with request
   const response = NextResponse.next();
-  
-  // Add custom header to track middleware execution
-  response.headers.set('X-Middleware-Executed', 'true');
-  response.headers.set('X-Middleware-Timestamp', new Date().toISOString());
-  response.headers.set('X-Request-Path', pathname);
-
-  // Example: Redirect logic (uncomment to use)
-  // if (pathname.startsWith('/dashboard') && !sessionToken) {
-  //   console.log('🔄 Redirecting to login (no session token)');
-  //   return NextResponse.redirect(new URL('/login', request.url));
-  // }
-
-  // Example: Block specific paths (uncomment to use)
-  // if (pathname.startsWith('/admin')) {
-  //   console.log('🚫 Blocking admin access');
-  //   return NextResponse.redirect(new URL('/login', request.url));
-  // }
-
-  // Example: Rewrite URL (uncomment to use)
-  // if (pathname.startsWith('/api-proxy')) {
-  //   const rewriteUrl = new URL(pathname.replace('/api-proxy', ''), request.url);
-  //   console.log('🔄 Rewriting URL:', rewriteUrl.toString());
-  //   return NextResponse.rewrite(rewriteUrl);
-  // }
-
-  // Example: Modify request headers (uncomment to use)
-  // const requestHeaders = new Headers(request.headers);
-  // requestHeaders.set('X-Custom-Header', 'middleware-value');
-  // return NextResponse.next({
-  //   request: {
-  //     headers: requestHeaders,
-  //   },
-  // });
-
-  console.log('✅ Middleware completed - request proceeding');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-
   return response;
 }
 

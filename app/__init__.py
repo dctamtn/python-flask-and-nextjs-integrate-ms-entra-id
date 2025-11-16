@@ -9,9 +9,28 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
     
     # Enable CORS for frontend
+    # Allow both localhost and 127.0.0.1 to avoid CORS issues
     CORS(app, resources={
-        r"/api/*": {"origins": ["http://localhost:3000", "http://localhost:3001"]},
-        r"/auth/*": {"origins": ["http://localhost:3000", "http://localhost:3001"]}
+        r"/api/*": {
+            "origins": [
+                "http://localhost:3000", 
+                "http://localhost:3001",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:3001"
+            ],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "X-Session-Token"]
+        },
+        r"/auth/*": {
+            "origins": [
+                "http://localhost:3000", 
+                "http://localhost:3001",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:3001"
+            ],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "X-Session-Token"]
+        }
     }, supports_credentials=True)
     
     # Register blueprints

@@ -20,6 +20,47 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Add response interceptor for better error handling
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      // Server responded with error status
+      const { status, statusText } = error.response;
+      
+      if (status === 405) {
+        console.error('❌ Method Not Allowed (405):', {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL,
+          message: 'The HTTP method is not allowed for this endpoint. Check if the Flask server is running and the route is correctly configured.',
+        });
+      } else if (status === 404) {
+        console.error('❌ Not Found (404):', {
+          url: error.config?.url,
+          baseURL: error.config?.baseURL,
+          message: 'The endpoint was not found. Check if the Flask server is running and the route exists.',
+        });
+      } else if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+        console.error('❌ Network Error:', {
+          url: error.config?.url,
+          baseURL: error.config?.baseURL,
+          message: 'Cannot connect to the Flask server. Make sure it is running on ' + API_URL,
+        });
+      }
+    } else if (error.request) {
+      // Request was made but no response received
+      console.error('❌ No Response from Server:', {
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        message: 'The Flask server did not respond. Make sure it is running on ' + API_URL,
+      });
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 export interface LoginRequest {
   provider?: string;
   username?: string;

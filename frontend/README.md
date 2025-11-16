@@ -1,153 +1,161 @@
-# Flask SSO Frontend
+# Azure Static Web Apps - Next.js Frontend
 
-Next.js frontend application for testing Flask SSO API with Microsoft Entra ID (Azure AD).
-
-## ⚠️ Important: Frontend Does NOT Need Azure AD Credentials
-
-**The frontend only needs the backend API URL!**
-
-- ✅ **Frontend**: Only needs `NEXT_PUBLIC_API_URL` pointing to backend
-- ❌ **Frontend**: Does NOT need Azure AD credentials (Client ID, Secret, etc.)
-- ✅ **Backend**: Handles all Azure AD communication
-
-**Flow**: Frontend → Backend → Azure AD → Backend → Frontend
-
-## Getting Started
-
-1. Install dependencies:
-```powershell
-# Windows PowerShell or CMD
-npm install
-```
-
-2. Set up environment variables:
-```powershell
-# Windows PowerShell
-New-Item -Path .env.local -ItemType File
-```
-
-Or using CMD:
-```cmd
-# Windows CMD
-type nul > .env.local
-```
-
-3. **Add only the backend API URL** to `.env.local`:
-```env
-# Frontend only needs the backend API URL
-NEXT_PUBLIC_API_URL=http://localhost:5000
-```
-
-**Note**: The frontend does NOT need Azure AD credentials. The backend handles all Azure AD communication.
-
-4. Make sure your Flask backend is running on `http://localhost:5000`
-
-5. Run the development server:
-```powershell
-# Windows PowerShell or CMD
-npm run dev
-```
-
-6. Open [http://localhost:3000](http://localhost:3000) in your browser
+Next.js frontend application integrated with Azure Static Web Apps authentication.
 
 ## Features
 
-- **Login Page** (`/login`) - Microsoft Entra ID SSO authentication
-- **Dashboard** (`/dashboard`) - Protected page showing user information and API test results
-- **Session Management** - Automatic session validation and token handling
-- **API Integration** - Full integration with Flask SSO API endpoints
-- **No Azure AD Credentials Required** - Frontend only needs backend API URL
-- **Middleware** (`middleware.ts`) - Request logging and debugging for testing
+- **Azure Static Web Apps Authentication** - Built-in Azure AD authentication via `/.auth/*` endpoints
+- **Hash Fragment Preservation** - Preserves URL hash fragments through authentication flow
+- **Next.js App Router** - Modern Next.js 13+ app directory structure
+- **TypeScript** - Full TypeScript support
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ installed
+- Azure Static Web App created (for production deployment)
+
+### Local Development
+
+#### Option 1: Test Authentication Locally (Recommended)
+
+To test Azure Static Web Apps authentication locally, use the SWA CLI:
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Run with SWA CLI (includes authentication):**
+   ```bash
+   npm run dev:swa
+   ```
+
+3. **Open browser:**
+   - Navigate to `http://localhost:4280` (SWA CLI default port)
+   - Authentication endpoints (`/.auth/*`) will work locally
+   - To test login, visit: `http://localhost:4280/.auth/login/aad`
+   - SWA CLI will show a mock authentication page where you can enter test user details
+
+**Note**: The SWA CLI emulates Azure Static Web Apps authentication locally, allowing you to test the full authentication flow without deploying to Azure.
+
+#### Option 2: Standard Next.js Development (No Authentication)
+
+If you just want to develop the UI without authentication:
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Run development server:**
+   ```bash
+   npm run dev
+   ```
+
+3. **Open browser:**
+   - Navigate to `http://localhost:3000` (or the port shown in terminal)
+   - **Note**: `/.auth/*` endpoints will NOT work - they only work with SWA CLI or in Azure
+
+### Production Deployment
+
+1. **Deploy to Azure Static Web Apps:**
+   - Connect your repository to Azure Static Web Apps
+   - Azure will automatically build and deploy your Next.js app
+
+2. **Enable Authentication:**
+   - In Azure Portal, go to your Static Web App
+   - Navigate to "Authentication" settings
+   - Click "Add identity provider"
+   - Select "Microsoft" (Azure AD)
+
+3. **Configure Route Protection (Optional):**
+   - Create `staticwebapp.config.json` in your app root
+   - Define protected routes as needed
 
 ## Pages
 
 - `/` - Home page (redirects to login or dashboard)
-- `/login` - SSO login page
-- `/dashboard` - Protected dashboard with user info and API status
+- `/login` - Azure AD login page (auto-redirects to `/.auth/login/aad`)
+- `/dashboard` - Protected dashboard with user info
+- `/techpack/detail/[id]` - Techpack detail pages with hash fragment support
 
-## API Integration
+## Authentication
 
-The frontend integrates with the following Flask API endpoints:
+The application uses Azure Static Web Apps' built-in authentication:
 
-- `POST /auth/sso/login` - User authentication
-- `GET /auth/sso/validate` - Session validation
-- `POST /auth/sso/logout` - User logout
-- `GET /api/user/profile` - Get user profile
-- `GET /api/health` - Health check
+- **Login**: `/.auth/login/aad` - Azure Active Directory
+- **Logout**: `/.auth/logout` - Clear session
+- **User Info**: `/.auth/me` - Get current user
+
+See [../AZURE_STATIC_WEB_APPS_AUTH.md](../AZURE_STATIC_WEB_APPS_AUTH.md) for detailed authentication documentation.
 
 ## Project Structure
 
 ```
 frontend/
-├── app/
+├── app/                    # Next.js app directory
 │   ├── layout.tsx          # Root layout with AuthProvider
-│   ├── page.tsx             # Home page
-│   ├── login/
-│   │   └── page.tsx         # Login page
-│   ├── dashboard/
-│   │   └── page.tsx         # Dashboard page
-│   └── globals.css          # Global styles
-├── contexts/
-│   └── AuthContext.tsx      # Authentication context
-├── lib/
-│   └── api.ts               # API client functions
-├── middleware.ts            # Next.js middleware (request logging)
-└── package.json
+│   ├── page.tsx            # Home page
+│   ├── login/              # Login page
+│   │   └── page.tsx
+│   ├── dashboard/          # Dashboard page
+│   │   └── page.tsx
+│   ├── auth/               # Auth routes
+│   │   └── logout/         # Logout page
+│   │       └── page.tsx
+│   └── techpack/           # Techpack pages
+│       └── detail/
+│           └── [id]/
+│               └── page.tsx
+├── components/             # React components
+│   └── HashConverter.tsx   # Hash fragment converter
+├── contexts/               # React contexts
+│   └── AuthContext.tsx     # Authentication context
+├── lib/                    # Utilities
+│   └── api.ts              # API client (if needed)
+├── middleware.ts           # Next.js middleware
+└── next.config.js          # Next.js configuration
 ```
 
-## Usage
+## Key Features
 
-1. **Configure Backend** (see `../AZURE_AD_SETUP.md`):
-   - Register app in Azure Portal
-   - Add Azure AD credentials to backend `.env_local`
-   - Start Flask backend: `python app.py`
+### Hash Fragment Preservation
 
-2. **Configure Frontend**:
-   - Create `.env.local` in frontend directory
-   - Set `NEXT_PUBLIC_API_URL=http://localhost:5000`
-   - Start Next.js frontend: `npm run dev`
+The application preserves hash fragments (e.g., `#ai`) through the entire authentication flow:
 
-3. **Test SSO**:
-   - Navigate to `http://localhost:3000`
-   - Click Login with Microsoft
-   - You'll be redirected to Microsoft login page
-   - After login, you'll be redirected back to dashboard
+1. **HashConverter** component converts `#ai` → `?hash=ai`
+2. **Middleware** preserves hash in redirect URIs
+3. After authentication, hash is restored in the final URL
 
-4. **Test Middleware**:
-   - Open browser console (F12) or terminal where `npm run dev` is running
-   - Navigate to any page (e.g., `/login`, `/dashboard`)
-   - You'll see middleware logs showing:
-     - Request path, method, URL
-     - Headers information
-     - Session token status
-     - Timestamp
-   - Check Network tab in browser DevTools to see custom headers added by middleware
+Example flow:
+- User visits: `/techpack/detail/314227#ai`
+- After login: `/techpack/detail/314227#ai` (hash preserved)
+
+### Authentication Context
+
+The `AuthContext` provides:
+- `user` - Current user information from Azure SWA
+- `isAuthenticated` - Authentication status
+- `login(redirectUri?)` - Initiate Azure AD login
+- `logout(redirectUri?)` - Initiate logout
+- `validateSession()` - Check authentication via `/.auth/me`
 
 ## Configuration
 
-### Frontend Configuration (`.env.local`)
-```env
-# Only this is needed - no Azure AD credentials!
-NEXT_PUBLIC_API_URL=http://localhost:5000
-```
+### Environment Variables
 
-### Backend Configuration (See `../AZURE_AD_SETUP.md`)
-The backend needs Azure AD credentials in `../.env_local`:
-- `MICROSOFT_CLIENT_ID`
-- `MICROSOFT_CLIENT_SECRET`
-- `MICROSOFT_TENANT_ID`
-- `SSO_REDIRECT_URI`
+No environment variables are required for Azure Static Web Apps authentication. The authentication is handled entirely by Azure's infrastructure.
 
-## How It Works
+### Next.js Configuration
 
-1. User clicks "Login" in frontend
-2. Frontend calls backend: `POST http://localhost:5000/auth/sso/login`
-3. Backend redirects to Azure AD login page
-4. User logs in with Microsoft account
-5. Azure AD redirects to backend: `http://localhost:5000/auth/sso/callback`
-6. Backend exchanges code for token with Azure AD
-7. Backend creates session and returns session token to frontend
-8. Frontend stores session token and shows dashboard
+The `next.config.js` file is configured for Azure Static Web Apps deployment. No additional configuration needed.
 
-**Key Point**: Frontend never directly communicates with Azure AD. All Azure AD communication goes through the backend.
+## Documentation
 
+- [Azure Static Web Apps Authentication Guide](../AZURE_STATIC_WEB_APPS_AUTH.md) - Complete authentication documentation
+
+## License
+
+MIT
